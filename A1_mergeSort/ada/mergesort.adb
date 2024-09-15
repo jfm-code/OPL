@@ -11,8 +11,8 @@ package body Mergesort is
       Result_Index : Index_Type := Result'First;
    begin
       while Left_Index <= Left'Last and Right_Index <= Right'Last loop
-         if Left(Left_Index) < Right(Right_Index) or else Left(Left_Index) = Right(Right_Index) then
-         -- if Left(Left_Index) <= Right(Right_Index) then
+         -- if Left(Left_Index) < Right(Right_Index) or else Left(Left_Index) = Right(Right_Index) then
+         if Left(Left_Index) <= Right(Right_Index) then
             Result(Result_Index) := Left(Left_Index);
             Left_Index := Index_Type'Succ(Left_Index); -- increment Left_Index
          else

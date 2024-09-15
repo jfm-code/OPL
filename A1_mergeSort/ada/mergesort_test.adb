@@ -1,3 +1,7 @@
+-- Merge sort in Ada, to build the program: gnatmake mergesort_test.adb
+-- To see the output: ./mergesort_test
+-- Parameters are hard-coded
+
 with Ada.Text_Io; use Ada.Text_Io;
 with Mergesort; 
 
@@ -12,8 +16,10 @@ procedure Mergesort_Test is
       New_Line;
    end Print;
    
-   List : List_Type := (1, 5, 2, 7, 3, 9, 4, 6);
+   List : List_Type := (170, 45, 75, -90, -802, 24, 2, 66);
 begin
+   Put_Line("Original List:");
    Print(List);
+   Put_Line("Sorted List:");
    Print(List_Sort.Sort(List));
 end Mergesort_Test;
