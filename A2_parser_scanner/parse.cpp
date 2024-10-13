@@ -1,6 +1,7 @@
 #include <iostream>
 #include <cstdlib>
 #include "scan.h"
+#include <stdexcept>
 
 const string names[] = {
     "read", "write", "id", "literal", "gets", "add", "sub", "mul", "div", "lparen", "rparen", "eof",
@@ -9,9 +10,16 @@ const string names[] = {
 
 static token input_token;
 
+class Syntax_Error : public std::exception {
+public:
+    const char* what() const noexcept override {
+        return "syntax error";
+    }
+};
+
 void error() {
     cout << "syntax error" << endl;
-    exit(1);
+    throw Syntax_Error();
 }
 
 void match(token expected) {
@@ -40,20 +48,6 @@ void cond(); // for the extended calculator
 void ro(); // for the extended calculator
 
 void program() {
-    // before implementing the extended calculator
-    /*switch (input_token) {
-        case t_id:
-        case t_read:
-        case t_write:
-        case t_eof:
-            cout << "predict program --> stmt_list eof" << endl;
-            stmt_list();
-            match(t_eof);
-            break;
-        default: error();
-    }*/
-
-    // for the extended calculator
     cout << "predict program --> stmt_list eof" << endl;
     stmt_list();
     match(t_eof);
@@ -79,53 +73,85 @@ void stmt_list() {
 }
 
 void stmt() {
-    switch (input_token) {
-        case t_id:
-            cout << "predict stmt --> id gets expr" << endl;
-            match(t_id);
-            match(t_gets);
-            expr();
-            break;
-        case t_read:
-            cout << "predict stmt --> read id" << endl;
-            match(t_read);
-            match(t_id);
-            break;
-        case t_write:
-            cout << "predict stmt --> write expr" << endl;
-            match(t_write);
-            expr();
-            break;
-        case t_if: // for the extended calculator
-            cout << "predict stmt --> if cond stmt_list end" << endl;
-            match(t_if);
-            cond();
-            stmt_list();
-            match(t_end);
-            break;
-        case t_while: // for the extended calculator
-            cout << "predict stmt --> while cond stmt_list end" << endl;
-            match(t_while);
-            cond();
-            stmt_list();
-            match(t_end);
-            break;
-        default: error();
+    try {
+        switch (input_token) {
+            case t_id:
+                cout << "predict stmt --> id gets expr" << endl;
+                match(t_id);
+                match(t_gets);
+                expr();
+                break;
+            case t_read:
+                cout << "predict stmt --> read id" << endl;
+                match(t_read);
+                match(t_id);
+                break;
+            case t_write:
+                cout << "predict stmt --> write expr" << endl;
+                match(t_write);
+                expr();
+                break;
+            case t_if: // for the extended calculator
+                cout << "predict stmt --> if cond stmt_list end" << endl;
+                match(t_if);
+                cond();
+                stmt_list();
+                match(t_end);
+                break;
+            case t_while: // for the extended calculator
+                cout << "predict stmt --> while cond stmt_list end" << endl;
+                match(t_while);
+                cond();
+                stmt_list();
+                match(t_end);
+                break;
+            default: error();
+        }
+    } catch (const Syntax_Error&) {
+        // Error recovery for stmt()
+        while (true) {
+            switch (input_token) {
+                case t_id: case t_read: case t_write:
+                case t_if: case t_while:
+                    stmt(); // Retry parsing stmt
+                    return;
+                case t_eof: case t_end:
+                    return;
+                default:
+                    input_token = scan(); // Skip token and try again
+            }
+        }
     }
 }
 
 void expr() {
     // cout << "debug: entering expr()" << endl;
-    switch (input_token) {
-        case t_id:
-        case t_literal:
-        case t_lparen:
-            cout << "predict expr --> term term_tail" << endl;
-            term();
-            term_tail();
-            break;
-        default: 
-            error();
+    try {
+        switch (input_token) {
+            case t_id:
+            case t_literal:
+            case t_lparen:
+                cout << "predict expr --> term term_tail" << endl;
+                term();
+                term_tail();
+                break;
+            default: 
+                error();
+        }
+    } catch (const Syntax_Error&) {
+        // Error recovery for expr()
+        while (true) {
+            switch (input_token) {
+                case t_id: case t_literal: case t_lparen:
+                    expr(); // Retry parsing expr
+                    return;
+                case t_add: case t_sub: case t_mul: case t_div:
+                case t_rparen: case t_read: case t_write: case t_eof:
+                    return;
+                default:
+                    input_token = scan(); // Skip token and try again
+            }
+        }
     }
 }
 
@@ -256,11 +282,26 @@ void mul_op() {
 
 // for the extended calculator
 void cond() {
-    cout << "predict cond --> expr ro expr" << endl;
-    expr();
-    // cout << "debug: token after expr (before ro()): " << names[input_token] << endl;
-    ro();
-    expr();
+    try {
+        expr();
+        // cout << "debug: token after expr (before ro()): " << names[input_token] << endl;
+        ro();
+        expr();
+    } catch (const Syntax_Error&) {
+        // Error recovery for cond()
+        while (true) {
+            switch (input_token) {
+                case t_id: case t_literal: case t_lparen:
+                    cond(); // Retry parsing cond
+                    return;
+                case t_if: case t_while: case t_read:
+                case t_write: case t_eof:
+                    return;
+                default:
+                    input_token = scan(); // Skip token and try again
+            }
+        }
+    }
 }
 
 // for the extended calculator
