@@ -15,14 +15,14 @@ void error() {
 }
 
 void match(token expected) {
-    cout << "Expecting: " << names[expected] << ", Current token: " << names[input_token] << endl;
+    // cout << "debug: expecting: " << names[expected] << ", current token: " << names[input_token] << endl;
     if (input_token == expected) {
         cout << "matched " << names[input_token];
         if (input_token == t_id || input_token == t_literal)
             cout << ": " << token_image;
         cout << endl;
         input_token = scan();
-        cout << "Next token: " << names[input_token] << endl; // Debug output for the next token
+        // cout << "debug: next token: " << names[input_token] << endl; // Debug output for the next token
     } else error();
 }
 
@@ -115,16 +115,14 @@ void stmt() {
 }
 
 void expr() {
-    cout << "Entering expr()" << endl;
+    // cout << "debug: entering expr()" << endl;
     switch (input_token) {
         case t_id:
         case t_literal:
         case t_lparen:
             cout << "predict expr --> term term_tail" << endl;
             term();
-            cout << "Back in expr() after term()" << endl; // New debug line
             term_tail();
-            cout << "Back in expr() after term_tail()" << endl; // New debug line
             break;
         default: 
             error();
@@ -132,16 +130,13 @@ void expr() {
 }
 
 void term() {
-    cout << "Entering term()" << endl;
     switch (input_token) {
         case t_id:
         case t_literal:
         case t_lparen:
             cout << "predict term --> factor factor_tail" << endl;
             factor();
-            cout << "Back in term() after factor()" << endl; // New debug line
             factor_tail();
-            cout << "Back in term() after factor_tail()" << endl; // New debug line
             break;
         default: 
             error();
@@ -149,7 +144,6 @@ void term() {
 }
 
 void term_tail() {
-    cout << "Entering term_tail()" << endl;
     switch (input_token) {
         case t_add:
         case t_sub:
@@ -264,19 +258,19 @@ void mul_op() {
 void cond() {
     cout << "predict cond --> expr ro expr" << endl;
     expr();
-    cout << "Token after expr (before ro()): " << names[input_token] << endl;
+    // cout << "debug: token after expr (before ro()): " << names[input_token] << endl;
     ro();
     expr();
 }
 
 // for the extended calculator
 void ro() {
-    cout << "In ro(), current token: " << names[input_token] << endl;
+    // cout << "debug: in ro(), current token: " << names[input_token] << endl;
     switch (input_token) {
         case t_eq: match(t_eq); break;
         case t_neq: match(t_neq); break;
         case t_lt: match(t_lt); break;
-        case t_gt: cout << "Matching '>'" << endl; match(t_gt); break;
+        case t_gt: match(t_gt); break;
         case t_le: match(t_le); break;
         case t_ge: match(t_ge); break;
         default: error();
