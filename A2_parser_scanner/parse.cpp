@@ -2,7 +2,10 @@
 #include <cstdlib>
 #include "scan.h"
 
-const string names[] = {"read", "write", "id", "literal", "gets", "add", "sub", "mul", "div", "lparen", "rparen", "eof"};
+const string names[] = {
+    "read", "write", "id", "literal", "gets", "add", "sub", "mul", "div", "lparen", "rparen", "eof",
+    "if", "while", "end", "eq", "neq", "lt", "gt", "le", "ge" // for the extended calculator
+};
 
 static token input_token;
 
@@ -12,12 +15,14 @@ void error() {
 }
 
 void match(token expected) {
+    cout << "Expecting: " << names[expected] << ", Current token: " << names[input_token] << endl;
     if (input_token == expected) {
         cout << "matched " << names[input_token];
         if (input_token == t_id || input_token == t_literal)
             cout << ": " << token_image;
         cout << endl;
         input_token = scan();
+        cout << "Next token: " << names[input_token] << endl; // Debug output for the next token
     } else error();
 }
 
@@ -31,9 +36,12 @@ void factor();
 void factor_tail();
 void add_op();
 void mul_op();
+void cond(); // for the extended calculator
+void ro(); // for the extended calculator
 
 void program() {
-    switch (input_token) {
+    // before implementing the extended calculator
+    /*switch (input_token) {
         case t_id:
         case t_read:
         case t_write:
@@ -43,7 +51,12 @@ void program() {
             match(t_eof);
             break;
         default: error();
-    }
+    }*/
+
+    // for the extended calculator
+    cout << "predict program --> stmt_list eof" << endl;
+    stmt_list();
+    match(t_eof);
 }
 
 void stmt_list() {
@@ -51,10 +64,13 @@ void stmt_list() {
         case t_id:
         case t_read:
         case t_write:
+        case t_if: // for the extended calculator
+        case t_while: // for the extended calculator
             cout << "predict stmt_list --> stmt stmt_list" << endl;
             stmt();
             stmt_list();
             break;
+        case t_end: // for the extended calculator
         case t_eof:
             cout << "predict stmt_list --> epsilon" << endl;
             break;
@@ -80,37 +96,60 @@ void stmt() {
             match(t_write);
             expr();
             break;
+        case t_if: // for the extended calculator
+            cout << "predict stmt --> if cond stmt_list end" << endl;
+            match(t_if);
+            cond();
+            stmt_list();
+            match(t_end);
+            break;
+        case t_while: // for the extended calculator
+            cout << "predict stmt --> while cond stmt_list end" << endl;
+            match(t_while);
+            cond();
+            stmt_list();
+            match(t_end);
+            break;
         default: error();
     }
 }
 
 void expr() {
+    cout << "Entering expr()" << endl;
     switch (input_token) {
         case t_id:
         case t_literal:
         case t_lparen:
             cout << "predict expr --> term term_tail" << endl;
             term();
+            cout << "Back in expr() after term()" << endl; // New debug line
             term_tail();
+            cout << "Back in expr() after term_tail()" << endl; // New debug line
             break;
-        default: error();
+        default: 
+            error();
     }
 }
 
 void term() {
+    cout << "Entering term()" << endl;
     switch (input_token) {
         case t_id:
         case t_literal:
         case t_lparen:
             cout << "predict term --> factor factor_tail" << endl;
             factor();
+            cout << "Back in term() after factor()" << endl; // New debug line
             factor_tail();
+            cout << "Back in term() after factor_tail()" << endl; // New debug line
             break;
-        default: error();
+        default: 
+            error();
     }
 }
 
 void term_tail() {
+    cout << "Entering term_tail()" << endl;
     switch (input_token) {
         case t_add:
         case t_sub:
@@ -119,14 +158,25 @@ void term_tail() {
             term();
             term_tail();
             break;
+        // Allow relational operators to transition back to cond()
         case t_rparen:
         case t_id:
         case t_read:
         case t_write:
+        case t_if:
+        case t_while:
+        case t_end:
         case t_eof:
+        case t_gt:      // Add relational operators here as epsilon productions
+        case t_eq:
+        case t_neq:
+        case t_lt:
+        case t_le:
+        case t_ge:
             cout << "predict term_tail --> epsilon" << endl;
             break;
-        default: error();
+        default: 
+            error();
     }
 }
 
@@ -154,21 +204,31 @@ void factor_tail() {
     switch (input_token) {
         case t_mul:
         case t_div:
-            cout << "predict factor_tail --> mul_op factor factor_tail" << endl;
             mul_op();
             factor();
             factor_tail();
             break;
+        // Allow relational operators to exit to cond() correctly
         case t_add:
         case t_sub:
         case t_rparen:
         case t_id:
         case t_read:
         case t_write:
+        case t_if:
+        case t_while:
+        case t_end:
         case t_eof:
+        case t_gt:     // Add these relational operators
+        case t_eq:
+        case t_neq:
+        case t_lt:
+        case t_le:
+        case t_ge:
             cout << "predict factor_tail --> epsilon" << endl;
             break;
-        default: error();
+        default: 
+            error();
     }
 }
 
@@ -196,6 +256,29 @@ void mul_op() {
             cout << "predict mul_op --> div" << endl;
             match(t_div);
             break;
+        default: error();
+    }
+}
+
+// for the extended calculator
+void cond() {
+    cout << "predict cond --> expr ro expr" << endl;
+    expr();
+    cout << "Token after expr (before ro()): " << names[input_token] << endl;
+    ro();
+    expr();
+}
+
+// for the extended calculator
+void ro() {
+    cout << "In ro(), current token: " << names[input_token] << endl;
+    switch (input_token) {
+        case t_eq: match(t_eq); break;
+        case t_neq: match(t_neq); break;
+        case t_lt: match(t_lt); break;
+        case t_gt: cout << "Matching '>'" << endl; match(t_gt); break;
+        case t_le: match(t_le); break;
+        case t_ge: match(t_ge); break;
         default: error();
     }
 }
